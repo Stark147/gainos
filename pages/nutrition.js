@@ -196,6 +196,137 @@ function Bar({pct,color,h=6}){
 
 const BLANK={name:'',cal:'',protein:'',carbs:'',fat:'',fiber:'',sodium:'',potassium:'',calcium:'',iron:'',vitC:'',vitD:'',vitB12:'',magnesium:'',zinc:'',omega3:''};
 
+// ─── Nutrition Facts Label ──────────────────────────────────
+function NutritionLabel({ food, activeMeal, onClose, onAdd, servings, setServings }) {
+  const mult = servings[food._key] || 1;
+  const v = (key) => Math.round(((food[key] || 0) * mult) * 10) / 10;
+
+  const rows = [
+    { label: 'Total Fat',        key: 'fat',      unit: 'g',   dv: 78,   indent: false, bold: true },
+    { label: 'Saturated Fat',    key: 'satFat',   unit: 'g',   dv: 20,   indent: true,  bold: false },
+    { label: 'Trans Fat',        key: 'transFat', unit: 'g',   dv: null, indent: true,  bold: false },
+    { label: 'Cholesterol',      key: 'cholesterol',unit:'mg', dv: 300,  indent: false, bold: true },
+    { label: 'Sodium',           key: 'sodium',   unit: 'mg',  dv: 2300, indent: false, bold: true },
+    { label: 'Total Carbohydrate',key:'carbs',    unit: 'g',   dv: 275,  indent: false, bold: true },
+    { label: 'Dietary Fiber',    key: 'fiber',    unit: 'g',   dv: 28,   indent: true,  bold: false },
+    { label: 'Total Sugars',     key: 'sugar',    unit: 'g',   dv: null, indent: true,  bold: false },
+    { label: 'Protein',          key: 'protein',  unit: 'g',   dv: 50,   indent: false, bold: true },
+  ];
+
+  const micros = [
+    { label: 'Vitamin D',   key: 'vitD',      unit: 'mcg', dv: 20   },
+    { label: 'Calcium',     key: 'calcium',   unit: 'mg',  dv: 1300 },
+    { label: 'Iron',        key: 'iron',      unit: 'mg',  dv: 18   },
+    { label: 'Potassium',   key: 'potassium', unit: 'mg',  dv: 4700 },
+    { label: 'Vitamin C',   key: 'vitC',      unit: 'mg',  dv: 90   },
+    { label: 'Vitamin A',   key: 'vitA',      unit: 'mcg', dv: 900  },
+    { label: 'Vitamin B12', key: 'vitB12',    unit: 'mcg', dv: 2.4  },
+    { label: 'Magnesium',   key: 'magnesium', unit: 'mg',  dv: 420  },
+    { label: 'Zinc',        key: 'zinc',      unit: 'mg',  dv: 11   },
+    { label: 'Omega-3',     key: 'omega3',    unit: 'g',   dv: 1.6  },
+    { label: 'Folate',      key: 'folate',    unit: 'mcg', dv: 400  },
+  ];
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',zIndex:300,display:'flex',alignItems:'flex-end',justifyContent:'center',backdropFilter:'blur(12px)'}}
+      onClick={onClose}>
+      <div style={{width:'100%',maxWidth:480,maxHeight:'90vh',overflowY:'auto',background:'#0d0d1a',borderRadius:'24px 24px 0 0',border:'1px solid rgba(255,255,255,0.1)',paddingBottom:32}}
+        onClick={e=>e.stopPropagation()}>
+
+        {/* Handle */}
+        <div style={{display:'flex',justifyContent:'center',padding:'12px 0 0'}}>
+          <div style={{width:36,height:4,borderRadius:2,background:'rgba(255,255,255,0.15)'}}/>
+        </div>
+
+        <div style={{padding:'16px 20px 0'}}>
+          {/* Header */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:18,fontWeight:800,color:'#fff',fontFamily:'Syne,sans-serif',lineHeight:1.2,marginBottom:4}}>{food.name}</div>
+              {food.brand&&<div style={{fontSize:11,color:'var(--text3)'}}>{food.brand}</div>}
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>Per {food.serving||'100g'} · {food.category||''}</div>
+            </div>
+            <button onClick={onClose} style={{width:32,height:32,borderRadius:'50%',background:'rgba(255,255,255,0.08)',border:'none',color:'var(--text2)',fontSize:16,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>×</button>
+          </div>
+
+          {/* Serving adjuster */}
+          <div style={{display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'rgba(108,99,255,0.08)',border:'1px solid rgba(108,99,255,0.2)',borderRadius:12,marginBottom:16}}>
+            <span style={{fontSize:12,color:'var(--text2)',fontWeight:500}}>Servings</span>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto',background:'var(--surface2)',borderRadius:8,padding:'4px 10px',border:'1px solid var(--border)'}}>
+              <button onClick={()=>setServings(s=>({...s,[food._key]:Math.max(0.5,(s[food._key]||1)-0.5)}))} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:18,lineHeight:1,fontFamily:'inherit'}}>−</button>
+              <span style={{fontSize:15,fontWeight:700,color:'var(--text)',minWidth:28,textAlign:'center'}}>{mult}</span>
+              <button onClick={()=>setServings(s=>({...s,[food._key]:(s[food._key]||1)+0.5}))} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:18,lineHeight:1,fontFamily:'inherit'}}>+</button>
+            </div>
+          </div>
+
+          {/* Nutrition Facts Label */}
+          <div style={{border:'2px solid rgba(255,255,255,0.15)',borderRadius:12,overflow:'hidden',marginBottom:16}}>
+
+            {/* Label header */}
+            <div style={{background:'rgba(255,255,255,0.04)',padding:'14px 16px',borderBottom:'8px solid rgba(255,255,255,0.1)'}}>
+              <div style={{fontSize:22,fontWeight:800,color:'#fff',fontFamily:'Syne,sans-serif'}}>Nutrition Facts</div>
+              <div style={{fontSize:11,color:'var(--text3)',marginTop:2}}>{mult} serving{mult!==1?'s':''} · {food.serving||'100g'} per serving</div>
+            </div>
+
+            {/* Calories */}
+            <div style={{padding:'10px 16px',borderBottom:'4px solid rgba(255,255,255,0.1)',display:'flex',justifyContent:'space-between',alignItems:'baseline'}}>
+              <div style={{fontSize:12,color:'var(--text2)',fontWeight:600}}>Calories</div>
+              <div style={{fontSize:36,fontWeight:800,color:'var(--accent)',fontFamily:'Syne,sans-serif',lineHeight:1}}>{v('cal')}</div>
+            </div>
+
+            {/* DV header */}
+            <div style={{padding:'4px 16px',borderBottom:'1px solid rgba(255,255,255,0.06)',textAlign:'right'}}>
+              <span style={{fontSize:9,color:'var(--text3)',fontWeight:700,letterSpacing:0.5}}>% Daily Value*</span>
+            </div>
+
+            {/* Macro rows */}
+            {rows.map((row,i)=>{
+              const val = v(row.key);
+              const pct = row.dv ? Math.round((val/row.dv)*100) : null;
+              if (val === 0 && row.key !== 'fat' && row.key !== 'carbs' && row.key !== 'protein') return null;
+              return(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:`${row.indent?'5px 16px 5px 28px':'7px 16px'}`,borderBottom:'1px solid rgba(255,255,255,0.05)',background:row.bold?'transparent':'rgba(0,0,0,0.1)'}}>
+                  <div style={{fontSize:row.bold?13:11,fontWeight:row.bold?600:400,color:row.bold?'var(--text)':'var(--text2)'}}>{row.label}</div>
+                  <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                    <span style={{fontSize:row.bold?13:11,fontWeight:row.bold?700:400,color:row.bold?'var(--text)':'var(--text2)'}}>{val}{row.unit}</span>
+                    {pct!==null&&<span style={{fontSize:11,fontWeight:700,color:pct>100?'#ef476f':pct>70?'#ffd166':'var(--text2)',minWidth:32,textAlign:'right'}}>{pct}%</span>}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Thick divider */}
+            <div style={{height:6,background:'rgba(255,255,255,0.08)'}}/>
+
+            {/* Micronutrients grid */}
+            <div style={{padding:'10px 16px'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px 16px'}}>
+                {micros.map((m,i)=>{
+                  const val=v(m.key);
+                  if(!val)return null;
+                  const pct=Math.round((val/m.dv)*100);
+                  return(
+                    <div key={i} style={{display:'flex',justifyContent:'space-between',padding:'3px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
+                      <span style={{fontSize:10,color:'var(--text3)'}}>{m.label}</span>
+                      <span style={{fontSize:10,fontWeight:600,color:'var(--text2)'}}>{pct}%</span>
+                    </div>
+                  );
+                }).filter(Boolean)}
+              </div>
+              <div style={{fontSize:9,color:'var(--text3)',marginTop:10,lineHeight:1.6}}>*Percent Daily Values based on a 2,000 calorie diet.</div>
+            </div>
+          </div>
+
+          {/* Add button */}
+          <button onClick={()=>{onAdd(food);onClose();}} style={{width:'100%',padding:'16px',background:'linear-gradient(135deg,var(--accent),#8b5cf6)',border:'none',borderRadius:12,color:'#fff',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 20px rgba(108,99,255,0.4)',letterSpacing:0.5}}>
+            Add {v('cal')} kcal to {activeMeal}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Nutrition(){
   const [meals,setMeals]         = useState({Breakfast:[],Lunch:[],Dinner:[],Snacks:[]});
   const [targets,setTargets]     = useState(DEF);
@@ -216,6 +347,7 @@ export default function Nutrition(){
   const [history,setHistory]     = useState({});
   const [editT,setEditT]         = useState(DEF);
   const [mounted,setMounted]     = useState(false);
+  const [labelFood,setLabelFood] = useState(null); // food item to show nutrition label
   const searchRef = useRef();
 
   useEffect(()=>{
@@ -497,7 +629,8 @@ export default function Nutrition(){
                 {dropdown.length>0&&(
                   <div style={{marginTop:4}}>
                     {dropdown.map((food,i)=>(
-                      <div key={i} className="card" style={{padding:'14px',marginBottom:8}}>
+                      <div key={i} className="card" style={{padding:'14px',marginBottom:8,cursor:'pointer'}}
+                        onClick={()=>setLabelFood({...food,_key:food.name})}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
                           <div style={{fontSize:13,fontWeight:600,color:'var(--text)',flex:1}}>{food.name}</div>
                           <span style={{fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:20,background:'rgba(108,99,255,0.15)',color:'var(--accent)',letterSpacing:1,flexShrink:0,marginLeft:8}}>{food.category}</span>
@@ -508,7 +641,7 @@ export default function Nutrition(){
                           {food.sodium?`Na:${food.sodium}mg · `:''}
                           {food.calcium?`Ca:${food.calcium}mg`:''}
                         </div>
-                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
                           <div style={{display:'flex',alignItems:'center',gap:6,background:'var(--surface2)',borderRadius:8,padding:'4px 8px',border:'1px solid var(--border)'}}>
                             <button onClick={()=>setServings(s=>({...s,[food.name]:Math.max(0.5,(s[food.name]||1)-0.5)}))} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:16,fontFamily:'inherit',lineHeight:1}}>−</button>
                             <span style={{fontSize:13,fontWeight:700,color:'var(--text)',minWidth:24,textAlign:'center'}}>{servings[food.name]||1}</span>
@@ -517,6 +650,7 @@ export default function Nutrition(){
                           <span style={{fontSize:11,color:'var(--text3)'}}>× serving</span>
                           <button onClick={()=>addFood(food)} style={{marginLeft:'auto',padding:'8px 18px',background:'linear-gradient(135deg,var(--accent),#8b5cf6)',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',boxShadow:'0 4px 10px rgba(108,99,255,0.3)'}}>Add ✓</button>
                         </div>
+                        <div style={{fontSize:10,color:'var(--text3)',marginTop:6,textAlign:'center',opacity:0.6}}>Tap card to view full nutrition label</div>
                       </div>
                     ))}
                   </div>
@@ -556,7 +690,8 @@ export default function Nutrition(){
                   <div>
                     <div style={{fontSize:10,color:'var(--text3)',marginBottom:8,letterSpacing:1}}>{onlineResults.length} RESULTS</div>
                     {onlineResults.map((food,i)=>(
-                      <div key={i} className="card" style={{padding:'14px',marginBottom:8}}>
+                      <div key={i} className="card" style={{padding:'14px',marginBottom:8,cursor:'pointer'}}
+                        onClick={()=>setLabelFood({...food,_key:food.name+'_online'})}>
                         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
                           <div style={{fontSize:13,fontWeight:600,color:'var(--text)',flex:1,marginRight:8}}>{food.name}</div>
                           <span style={{fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:20,background:food.source==='usda'?'rgba(67,233,123,0.12)':'rgba(79,195,247,0.12)',color:food.source==='usda'?'#43e97b':'#4fc3f7',flexShrink:0}}>{food.source==='usda'?'USDA':'OFF'}</span>
@@ -564,7 +699,7 @@ export default function Nutrition(){
                         {food.brand&&<div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>{food.brand}</div>}
                         <div style={{fontSize:11,color:'var(--text2)',marginBottom:4}}>Per {food.serving}: <strong style={{color:'var(--accent)'}}>{food.cal||0} kcal</strong> · P:{food.protein||0}g · C:{food.carbs||0}g · F:{food.fat||0}g</div>
                         {(food.fiber||food.sodium||food.calcium)&&<div style={{fontSize:10,color:'var(--text3)',marginBottom:8}}>{food.fiber?`Fiber:${food.fiber}g `:''}·{food.sodium?` Na:${food.sodium}mg `:''}·{food.calcium?` Ca:${food.calcium}mg`:''}</div>}
-                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                        <div style={{display:'flex',gap:8,alignItems:'center'}} onClick={e=>e.stopPropagation()}>
                           <div style={{display:'flex',alignItems:'center',gap:6,background:'var(--surface2)',borderRadius:8,padding:'4px 8px',border:'1px solid var(--border)'}}>
                             <button onClick={()=>setServings(s=>({...s,[food.name+'_online']:Math.max(0.5,(s[food.name+'_online']||1)-0.5)}))} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:16,lineHeight:1}}>−</button>
                             <span style={{fontSize:13,fontWeight:700,color:'var(--text)',minWidth:24,textAlign:'center'}}>{servings[food.name+'_online']||1}</span>
@@ -573,6 +708,7 @@ export default function Nutrition(){
                           <span style={{fontSize:11,color:'var(--text3)'}}>× serving</span>
                           <button onClick={()=>addFood({...food,id:food.name+'_online',name:food.name})} style={{marginLeft:'auto',padding:'8px 18px',background:'linear-gradient(135deg,var(--accent),#8b5cf6)',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Add ✓</button>
                         </div>
+                        <div style={{fontSize:10,color:'var(--text3)',marginTop:6,textAlign:'center',opacity:0.6}}>Tap card to view full nutrition label</div>
                       </div>
                     ))}
                   </div>
@@ -610,6 +746,22 @@ export default function Nutrition(){
             )}
           </div>
         </div>
+      )}
+
+      {/* Nutrition Label Modal */}
+      {labelFood&&(
+        <NutritionLabel
+          food={labelFood}
+          activeMeal={activeMeal}
+          onClose={()=>setLabelFood(null)}
+          onAdd={(food)=>{
+            const key=food._key||food.name;
+            addFood({...food,id:key,name:food.name});
+            setLabelFood(null);
+          }}
+          servings={servings}
+          setServings={setServings}
+        />
       )}
 
       <BottomNav/>
