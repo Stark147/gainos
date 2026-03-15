@@ -202,7 +202,11 @@ export default function Nutrition(){
   const [water,setWater]         = useState(0);
   const [view,setView]           = useState('today');
   const [showAdd,setShowAdd]     = useState(false);
-  const [addTab,setAddTab]       = useState('db');   // db | manual
+  const [addTab,setAddTab]       = useState('db');   // db | online | manual
+  const [onlineQ,setOnlineQ]     = useState('');
+  const [onlineResults,setOnlineResults] = useState([]);
+  const [onlineLoading,setOnlineLoading] = useState(false);
+  const [onlineSource,setOnlineSource]   = useState('all'); // all | usda | off
   const [activeMeal,setActiveMeal]= useState('Breakfast');
   const [searchQ,setSearchQ]     = useState('');
   const [activeCat,setActiveCat] = useState('All');
@@ -251,6 +255,17 @@ export default function Nutrition(){
     ['cal','protein','carbs','fat','fiber','sugar','sodium','potassium','calcium','iron','vitC','vitD','vitB12','magnesium','zinc','omega3','vitA','folate','cholesterol','satFat'].forEach(k=>{ item[k]=Math.round(((food[k]||0)*mult)*10)/10 });
     const updated={...meals,[activeMeal]:[...(meals[activeMeal]||[]),item]};
     saveMeals(updated); setSearchQ(''); setDropdown([]); setServings({});
+  };
+
+  const searchOnline=async()=>{
+    if(!onlineQ.trim())return;
+    setOnlineLoading(true);setOnlineResults([]);
+    try{
+      const r=await fetch('/api/nutrition-search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:onlineQ,source:onlineSource})});
+      const d=await r.json();
+      setOnlineResults(d.foods||[]);
+    }catch{setOnlineResults([]);}
+    setOnlineLoading(false);
   };
 
   const addManual=()=>{
@@ -448,7 +463,7 @@ export default function Nutrition(){
 
             {/* Tabs */}
             <div style={{display:'flex',gap:8,marginBottom:16,background:'var(--surface)',borderRadius:12,padding:4,border:'1px solid var(--border)'}}>
-              {[{id:'db',label:'🍽 Search Foods'},{id:'manual',label:'✏️ Manual'}].map(t=>(
+              {[{id:'db',label:'🍽 Local'},{id:'online',label:'🌐 USDA+OFF'},{id:'manual',label:'✏️ Manual'}].map(t=>(
                 <button key={t.id} onClick={()=>setAddTab(t.id)} style={{flex:1,padding:'10px',borderRadius:8,border:'none',cursor:'pointer',background:addTab===t.id?'linear-gradient(135deg,var(--accent),#8b5cf6)':'transparent',color:addTab===t.id?'#fff':'var(--text2)',fontSize:12,fontWeight:700,fontFamily:'inherit',transition:'all 0.2s'}}>{t.label}</button>
               ))}
             </div>
@@ -519,6 +534,53 @@ export default function Nutrition(){
                     Start typing to search {FOOD_DB.length}+ foods instantly
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Online Search — USDA + Open Food Facts */}
+            {addTab==='online'&&(
+              <div>
+                {/* Source selector */}
+                <div style={{display:'flex',gap:6,marginBottom:12}}>
+                  {[{id:'all',label:'All Sources'},{id:'usda',label:'USDA'},{id:'off',label:'Open Food Facts'}].map(s=>(
+                    <button key={s.id} onClick={()=>setOnlineSource(s.id)} style={{flex:1,padding:'7px 6px',background:onlineSource===s.id?'rgba(108,99,255,0.25)':'var(--surface)',border:`1px solid ${onlineSource===s.id?'rgba(108,99,255,0.5)':'var(--border)'}`,borderRadius:8,color:onlineSource===s.id?'var(--accent)':'var(--text3)',fontSize:10,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>{s.label}</button>
+                  ))}
+                </div>
+                {/* Search bar */}
+                <div style={{position:'relative',marginBottom:12}}>
+                  <input type="text" placeholder="Search USDA + Open Food Facts..." value={onlineQ} onChange={e=>setOnlineQ(e.target.value)} onKeyDown={e=>e.key==='Enter'&&searchOnline()} style={{paddingRight:80}}/>
+                  <button onClick={searchOnline} disabled={onlineLoading||!onlineQ.trim()} style={{position:'absolute',right:6,top:'50%',transform:'translateY(-50%)',padding:'8px 14px',background:'linear-gradient(135deg,var(--accent),#8b5cf6)',border:'none',borderRadius:8,color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:onlineLoading||!onlineQ.trim()?0.5:1}}>{onlineLoading?'...':'Search'}</button>
+                </div>
+                {onlineLoading&&<div style={{textAlign:'center',padding:'24px',color:'var(--text3)',fontSize:13}}>Searching databases...</div>}
+                {onlineResults.length>0&&(
+                  <div>
+                    <div style={{fontSize:10,color:'var(--text3)',marginBottom:8,letterSpacing:1}}>{onlineResults.length} RESULTS</div>
+                    {onlineResults.map((food,i)=>(
+                      <div key={i} className="card" style={{padding:'14px',marginBottom:8}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:4}}>
+                          <div style={{fontSize:13,fontWeight:600,color:'var(--text)',flex:1,marginRight:8}}>{food.name}</div>
+                          <span style={{fontSize:9,fontWeight:700,padding:'2px 8px',borderRadius:20,background:food.source==='usda'?'rgba(67,233,123,0.12)':'rgba(79,195,247,0.12)',color:food.source==='usda'?'#43e97b':'#4fc3f7',flexShrink:0}}>{food.source==='usda'?'USDA':'OFF'}</span>
+                        </div>
+                        {food.brand&&<div style={{fontSize:10,color:'var(--text3)',marginBottom:4}}>{food.brand}</div>}
+                        <div style={{fontSize:11,color:'var(--text2)',marginBottom:4}}>Per {food.serving}: <strong style={{color:'var(--accent)'}}>{food.cal||0} kcal</strong> · P:{food.protein||0}g · C:{food.carbs||0}g · F:{food.fat||0}g</div>
+                        {(food.fiber||food.sodium||food.calcium)&&<div style={{fontSize:10,color:'var(--text3)',marginBottom:8}}>{food.fiber?`Fiber:${food.fiber}g `:''}·{food.sodium?` Na:${food.sodium}mg `:''}·{food.calcium?` Ca:${food.calcium}mg`:''}</div>}
+                        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:6,background:'var(--surface2)',borderRadius:8,padding:'4px 8px',border:'1px solid var(--border)'}}>
+                            <button onClick={()=>setServings(s=>({...s,[food.name+'_online']:Math.max(0.5,(s[food.name+'_online']||1)-0.5)}))} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:16,lineHeight:1}}>−</button>
+                            <span style={{fontSize:13,fontWeight:700,color:'var(--text)',minWidth:24,textAlign:'center'}}>{servings[food.name+'_online']||1}</span>
+                            <button onClick={()=>setServings(s=>({...s,[food.name+'_online']:(s[food.name+'_online']||1)+0.5}))} style={{background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:16,lineHeight:1}}>+</button>
+                          </div>
+                          <span style={{fontSize:11,color:'var(--text3)'}}>× serving</span>
+                          <button onClick={()=>addFood({...food,id:food.name+'_online',name:food.name})} style={{marginLeft:'auto',padding:'8px 18px',background:'linear-gradient(135deg,var(--accent),#8b5cf6)',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit'}}>Add ✓</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!onlineLoading&&onlineQ&&onlineResults.length===0&&(
+                  <div style={{textAlign:'center',padding:'20px',color:'var(--text3)',fontSize:13}}>No results. Try different keywords.</div>
+                )}
+                {!onlineQ&&<div style={{textAlign:'center',padding:'24px',color:'var(--text3)',fontSize:12}}>Search 380,000+ USDA foods + 3M+ packaged products</div>}
               </div>
             )}
 
